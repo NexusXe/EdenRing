@@ -1,9 +1,11 @@
 package paulevs.edenring;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder;
+import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.loot.v2.LootTableEvents;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -19,30 +21,25 @@ import org.betterx.bclib.api.v2.datafixer.DataFixerAPI;
 import org.betterx.bclib.api.v2.datafixer.ForcedLevelPatch;
 import org.betterx.bclib.api.v2.datafixer.MigrationProfile;
 import org.betterx.bclib.registry.BaseRegistry;
+import org.betterx.worlds.together.util.Logger;
+import paulevs.edenring.config.Configs;
 import paulevs.edenring.paintings.EdenPaintings;
-import paulevs.edenring.registries.EdenBiomes;
-import paulevs.edenring.registries.EdenBlockEntities;
-import paulevs.edenring.registries.EdenBlocks;
-import paulevs.edenring.registries.EdenEntities;
-import paulevs.edenring.registries.EdenFeatures;
-import paulevs.edenring.registries.EdenItems;
-import paulevs.edenring.registries.EdenRecipes;
-import paulevs.edenring.registries.EdenSounds;
+import paulevs.edenring.registries.*;
 import paulevs.edenring.world.EdenPortal;
 import paulevs.edenring.world.generator.EdenBiomeSource;
 import paulevs.edenring.world.generator.GeneratorOptions;
 
 public class EdenRing implements ModInitializer {
 	public static final String MOD_ID = "edenring";
-	
-	public static final ResourceKey<DimensionType> EDEN_RING_TYPE_KEY = ResourceKey.create(Registry.DIMENSION_TYPE_REGISTRY, makeID(MOD_ID));
-	public static final ResourceKey<Level> EDEN_RING_KEY = ResourceKey.create(Registry.DIMENSION_REGISTRY, makeID(MOD_ID));
-	public static final CreativeModeTab EDEN_TAB = FabricItemGroupBuilder
-		.create(makeID("eden_tab"))
+	public static final Logger LOGGER = new Logger(MOD_ID);
+
+	public static final ResourceKey<DimensionType> EDEN_RING_TYPE_KEY = ResourceKey.create(Registries.DIMENSION_TYPE, makeID(MOD_ID));
+	public static final ResourceKey<Level> EDEN_RING_KEY = ResourceKey.create(Registries.DIMENSION, makeID(MOD_ID));
+	public static final CreativeModeTab EDEN_TAB = FabricItemGroup.builder(makeID("eden_tab"))
 		.icon(() -> new ItemStack(EdenBlocks.MOSSY_STONE))
-		.appendItems(stacks -> {
-			stacks.addAll(BaseRegistry.getModBlockItems(MOD_ID).stream().map(ItemStack::new).toList());
-			stacks.addAll(BaseRegistry.getModItems(MOD_ID).stream().map(ItemStack::new).toList());
+		.displayItems((featureFlagSet, output, bl) -> {
+			output.acceptAll(BaseRegistry.getModBlockItems(MOD_ID).stream().map(ItemStack::new).toList());
+			output.acceptAll(BaseRegistry.getModItems(MOD_ID).stream().map(ItemStack::new).toList());
 		}).build();
 	
 	@Override
@@ -54,11 +51,12 @@ public class EdenRing implements ModInitializer {
 		EdenPaintings.init();
 		EdenEntities.init();
 		EdenItems.init();
-		EdenFeatures.init();
-		EdenBiomes.init();
+		EdenBiomes.register();
+		EdenFeatures.register();
 		EdenRecipes.init();
+		Configs.saveConfigs();
 		
-		Registry.register(Registry.BIOME_SOURCE, makeID("biome_source"), EdenBiomeSource.CODEC);
+		Registry.register(BuiltInRegistries.BIOME_SOURCE, makeID("biome_source"), EdenBiomeSource.CODEC);
 		EdenPortal.init();
 		
 		DataFixerAPI.registerPatch(() -> new ForcedLevelPatch(MOD_ID, "0.2.0") {

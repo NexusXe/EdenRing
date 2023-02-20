@@ -1,64 +1,44 @@
 package paulevs.edenring.registries;
 
-import com.google.common.collect.Lists;
-import org.betterx.bclib.api.v2.levelgen.biomes.BCLBiome;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.biome.Biome;
+import org.betterx.bclib.api.v2.levelgen.biomes.BCLBiomeRegistry;
 import org.betterx.bclib.api.v2.levelgen.biomes.BiomeAPI;
-import org.betterx.bclib.api.v2.levelgen.biomes.BiomeAPI.BiomeType;
-import org.betterx.bclib.config.EntryConfig;
-import org.betterx.bclib.config.IdConfig;
 import paulevs.edenring.EdenRing;
-import paulevs.edenring.world.biomes.CaveBiomes;
-import paulevs.edenring.world.biomes.LandBiomes;
-import paulevs.edenring.world.biomes.VoidBiomes;
-
-import java.util.List;
+import paulevs.edenring.world.biome.EdenRingBiome;
 
 public class EdenBiomes {
-	private static final IdConfig CONFIG = new EntryConfig(EdenRing.MOD_ID, "biomes");
-	public static final List<BCLBiome> BIOMES_LAND = Lists.newArrayList();
-	public static final List<BCLBiome> BIOMES_VOID = Lists.newArrayList();
-	public static final List<BCLBiome> BIOMES_CAVE = Lists.newArrayList();
-	
-	// LAND //
-	public static final BCLBiome STONE_GARDEN = registerLand(LandBiomes.makeStoneGardenBiome());
-	public static final BCLBiome GOLDEN_FOREST = registerLand(LandBiomes.makeGoldenForestBiome());
-	public static final BCLBiome MYCOTIC_FOREST = registerLand(LandBiomes.makeMycoticForestBiome());
-	public static final BCLBiome PULSE_FOREST = registerLand(LandBiomes.makePulseForestBiome());
-	public static final BCLBiome BRAINSTORM = registerLand(LandBiomes.makeBrainstormBiome());
-	public static final BCLBiome LAKESIDE_DESERT = registerLand(LandBiomes.makeLakesideDesertBiome());
-	public static final BCLBiome WIND_VALLEY = registerLand(LandBiomes.makeWindValleyBiome());
-	
-	// VOID //
-	public static final BCLBiome AIR_OCEAN = registerVoid(VoidBiomes.makeAirOcean());
-	public static final BCLBiome SKY_COLONY = registerVoid(VoidBiomes.makeSkyColony());
-	
-	// CAVES //
-	public static final BCLBiome EMPTY_CAVE = registerCave(CaveBiomes.makeEmptyCaveBiome());
-	public static final BCLBiome ERODED_CAVE = registerCave(CaveBiomes.makeErodedCaveBiome());
-	
-	// SUBBIOMES //
-	public static final BCLBiome OLD_MYCOTIC_FOREST = registerSubLand(MYCOTIC_FOREST, LandBiomes.makeOldMycoticForestBiome());
-	
-	public static void init() {
-		CONFIG.saveChanges();
-	}
-	
-	private static BCLBiome registerLand(BCLBiome biome) {
-		BIOMES_LAND.add(biome);
-		return BiomeAPI.registerBuiltinBiomeAndOverrideIntendedDimension(biome, BiomeType.NONE);
-	}
-	
-	private static BCLBiome registerVoid(BCLBiome biome) {
-		BIOMES_VOID.add(biome);
-		return BiomeAPI.registerBuiltinBiomeAndOverrideIntendedDimension(biome, BiomeType.NONE);
-	}
-	
-	private static BCLBiome registerCave(BCLBiome biome) {
-		BIOMES_CAVE.add(biome);
-		return BiomeAPI.registerBuiltinBiomeAndOverrideIntendedDimension(biome, BiomeType.NONE);
-	}
-	
-	private static BCLBiome registerSubLand(BCLBiome parent, BCLBiome biome) {
-		return BiomeAPI.registerSubBiome(parent, biome);
-	}
+    public static final BiomeAPI.BiomeType EDEN = new BiomeAPI.BiomeType("EDEN");
+    public static final BiomeAPI.BiomeType EDEN_CAVE = new BiomeAPI.BiomeType("EDEN_CAVE", EDEN);
+    public static final BiomeAPI.BiomeType EDEN_LAND = new BiomeAPI.BiomeType("EDEN_LAND", EDEN);
+    public static final BiomeAPI.BiomeType EDEN_VOID = new BiomeAPI.BiomeType("EDEN_VOID", EDEN);
+
+    // LAND //
+    public static final ResourceKey<Biome> STONE_GARDEN = cKey("stone_garden");
+    public static final ResourceKey<Biome> GOLDEN_FOREST = cKey("golden_forest");
+    public static final ResourceKey<Biome> MYCOTIC_FOREST = cKey("mycotic_forest");
+    public static final ResourceKey<Biome> PULSE_FOREST = cKey("pulse_forest");
+    public static final ResourceKey<Biome> BRAINSTORM = cKey("brainstorm");
+    public static final ResourceKey<Biome> LAKESIDE_DESERT = cKey("lakeside_desert");
+    public static final ResourceKey<Biome> WIND_VALLEY = cKey("wind_valley");
+
+    // VOID //
+    public static final ResourceKey<Biome> AIR_OCEAN = cKey("air_ocean");
+    public static final ResourceKey<Biome> SKY_COLONY = cKey("sky_colony");
+
+    // CAVES
+    public static final ResourceKey<Biome> EMPTY_CAVE = cKey("empty_cave");
+    public static final ResourceKey<Biome> ERODED_CAVE = cKey("eroded_cave");
+
+    // SUBBIOMES //
+    public static final ResourceKey<Biome> OLD_MYCOTIC_FOREST = cKey("old_mycotic_forest");
+
+    private static ResourceKey<Biome> cKey(String path) {
+        return ResourceKey.create(Registries.BIOME, EdenRing.makeID(path));
+    }
+
+    public static void register() {
+        BCLBiomeRegistry.registerBiomeCodec(EdenRing.makeID("biome"), EdenRingBiome.KEY_CODEC);
+    }
 }

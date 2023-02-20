@@ -2,10 +2,9 @@ package paulevs.edenring.world.generator;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.BlockPos;
+import net.minecraft.core.*;
 import net.minecraft.core.BlockPos.MutableBlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
@@ -15,8 +14,8 @@ import org.betterx.bclib.api.v2.generator.BiomePicker;
 import org.betterx.bclib.api.v2.generator.map.hex.HexBiomeMap;
 import org.betterx.bclib.interfaces.BiomeMap;
 import paulevs.edenring.EdenRing;
+import paulevs.edenring.datagen.worldgen.EdenRingBiomesDataProvider;
 import paulevs.edenring.noise.InterpolationCell;
-import paulevs.edenring.registries.EdenBiomes;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,42 +24,40 @@ import java.util.stream.Collectors;
 public class EdenBiomeSource extends BiomeSource {
 	public static final Codec<EdenBiomeSource> CODEC = RecordCodecBuilder.create(
 		(instance) -> instance.group(
-			RegistryOps.retrieveRegistry(Registry.BIOME_REGISTRY).forGetter((theEndBiomeSource) -> null)
+			RegistryOps.retrieveGetter(Registries.BIOME)
 		).apply(instance, instance.stable(EdenBiomeSource::new))
 	);
 	
 	private Map<ChunkPos, InterpolationCell> terrainCache = new ConcurrentHashMap<>();
 	private BiomePicker pickerLand;
-	private BiomePicker pickerVoid;
+	private BiomePicker pickerAir;
 	private BiomePicker pickerCave;
 	private BiomeMap mapLand;
-	private BiomeMap mapVoid;
+	private BiomeMap mapAir;
 	private BiomeMap mapCave;
 	
-	public EdenBiomeSource(Registry<Biome> biomeRegistry) {
-		super(biomeRegistry
-			.entrySet()
-			.stream()
-			.filter(entry -> entry.getKey().location().getNamespace().equals(EdenRing.MOD_ID))
-			.map(entry -> biomeRegistry.getOrCreateHolder(entry.getKey()).get().left().get())
+	public EdenBiomeSource(HolderGetter<Biome> biomeRegistry) {
+		super(((HolderLookup<Biome>) biomeRegistry).listElementIds()
+			.filter(key -> key.location().getNamespace().equals(EdenRing.MOD_ID))
+			.map(biomeRegistry::getOrThrow)
 			.collect(Collectors.toList()));
 		
 		if (pickerLand == null) {
 			pickerLand = new BiomePicker(biomeRegistry);
-			EdenBiomes.BIOMES_LAND.forEach(biome -> pickerLand.addBiome(biome));
+			EdenRingBiomesDataProvider.BIOMES_LAND.forEach(biome -> pickerLand.addBiome(biome));
 			pickerLand.rebuild();
 			
-			pickerVoid = new BiomePicker(biomeRegistry);
-			EdenBiomes.BIOMES_VOID.forEach(biome -> pickerVoid.addBiome(biome));
-			pickerVoid.rebuild();
+			pickerAir = new BiomePicker(biomeRegistry);
+			EdenRingBiomesDataProvider.BIOMES_AIR.forEach(biome -> pickerAir.addBiome(biome));
+			pickerAir.rebuild();
 			
 			pickerCave = new BiomePicker(biomeRegistry);
-			EdenBiomes.BIOMES_CAVE.forEach(biome -> pickerCave.addBiome(biome));
+			EdenRingBiomesDataProvider.BIOMES_CAVE.forEach(biome -> pickerCave.addBiome(biome));
 			pickerCave.rebuild();
 		}
 		
 		mapLand = new HexBiomeMap(0, GeneratorOptions.biomeSizeLand, pickerLand);
-		mapVoid = new HexBiomeMap(0, GeneratorOptions.biomeSizeVoid, pickerVoid);
+		mapAir = new HexBiomeMap(0, GeneratorOptions.biomeSizeAir, pickerAir);
 		mapCave = new HexBiomeMap(0, GeneratorOptions.biomeSizeCave, pickerCave);
 	}
 	
@@ -92,12 +89,12 @@ public class EdenBiomeSource extends BiomeSource {
 			}
 			return mapLand.getBiome(px, 0, pz).biome;
 		}
-		return mapVoid.getBiome(px, 0, pz).biome;
+		return mapAir.getBiome(px, 0, pz).biome;
 	}
 	
 	public void setSeed(long seed) {
 		mapLand = new HexBiomeMap(seed, GeneratorOptions.biomeSizeLand, pickerLand);
-		mapVoid = new HexBiomeMap(seed, GeneratorOptions.biomeSizeVoid, pickerVoid);
+		mapAir = new HexBiomeMap(seed, GeneratorOptions.biomeSizeAir, pickerAir);
 		mapCave = new HexBiomeMap(seed, GeneratorOptions.biomeSizeCave, pickerCave);
 	}
 	
@@ -105,7 +102,7 @@ public class EdenBiomeSource extends BiomeSource {
 		if ((x & 63) == 0 && (z & 63) == 0) {
 			terrainCache.clear();
 			mapLand.clearCache();
-			mapVoid.clearCache();
+			mapAir.clearCache();
 			mapCave.clearCache();
 		}
 	}
